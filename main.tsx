@@ -1,5 +1,6 @@
 import React from "react";
 import { AppRegistry } from "react-native";
+import { registerRootComponent } from 'expo';
 // import {  LiveMap } from "@liveblocks/client";
 import App from "./app/index";
 import { expo } from "./app.json";
@@ -16,4 +17,5 @@ const Wrapper = () => {
   return <App />;
 };
 
-AppRegistry.registerComponent(expo.name, () => Wrapper);
+// AppRegistry.registerComponent(expo.name, () => Wrapper);
+registerRootComponent(Wrapper);
