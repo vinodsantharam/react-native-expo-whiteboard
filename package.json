@@ -1,6 +1,6 @@
 {
   "name": "react-native-expo-whiteboard",
-  "main": "main.tsx",
+  "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
