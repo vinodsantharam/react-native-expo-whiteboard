@@ -22,11 +22,14 @@ import {
   shallow,
   useHistory,
   useMutation,
+  useOthers,
+  useSelf,
   useStorage,
 } from "@liveblocks/react";
 import { LiveMap, LiveObject } from "@liveblocks/client";
 import { RoomProvider } from "@/liveblocks.config";
 import { useRef, useState } from "react";
+import Constants from "expo-constants";
 
 export default function Index() {
   const { height, width } = useWindowDimensions();
@@ -115,7 +118,6 @@ function Canvas() {
 
   const onShapePointerDown = useMutation(
     ({ setMyPresence }, shapeId: string) => {
-      console.log('onShapePointerDown', isDragging);
       history.pause();
 
       setMyPresence({ selectedShape: shapeId }, { addToHistory: true });
@@ -144,8 +146,6 @@ function Canvas() {
       console.log('onCanvasPointerMove', e.isDragging);
 
 
-      // console.log("move", Math.ceil(e.x), Math.ceil(e.y), isDragging);
-
       if (!e.isDragging) {
         return;
       }
@@ -157,7 +157,6 @@ function Canvas() {
 
       const shape = storage.get("shapes").get(shapeId);
 
-      console.log("move", shape,  Math.ceil(e.x), Math.ceil(e.y), isDragging);
       if (shape) {
         shape.update({
           x: e.x,
@@ -216,96 +215,6 @@ function Canvas() {
   );
 }
 
-// function Rectangle({
-//   id,
-//   onShapePointerDown,
-//   onCanvasPointerMove,
-//   onCanvasPointerUp,
-// }: RectangleProps) {
-//   const { x, y, fill } = useStorage((root) => root.shapes.get(id));
-//   const pressed = useSharedValue<boolean>(false);
-
-//   console.log("init", Math.ceil(x), Math.ceil(y));
-
-//   const translationX = useSharedValue(0);
-//   const translationY = useSharedValue(0);
-//   const prevTranslationX = useSharedValue(0);
-//   const prevTranslationY = useSharedValue(0);
-
-//   const pan = Gesture.Pan()
-//     .minDistance(1)
-//     .onStart(() => {
-//       prevTranslationX.value = translationX.value;
-//       prevTranslationY.value = translationY.value;
-//     })
-//     .onBegin(() => {
-//       pressed.value = true;
-//     })
-//     .onUpdate((event) => {
-//       const maxTranslateX = width - 25;
-//       const maxTranslateY = height - 25;
-
-//       translationX.value = clamp(
-//         prevTranslationX.value + event.translationX,
-//         -maxTranslateX,
-//         maxTranslateX
-//       );
-//       translationY.value = clamp(
-//         prevTranslationY.value + event.translationY,
-//         -maxTranslateY,
-//         maxTranslateY
-//       );
-
-//       console.log("move", Math.ceil(event.x), Math.ceil(event.y));
-//       //  console.log('move - absolute', Math.ceil(event.absoluteX), Math.ceil(event.absoluteY));
-//       // console.log('move - translation', Math.ceil(event.translationX), Math.ceil(event.translationY));
-
-//       onCanvasPointerMove({ x: event.absoluteX, y: event.absoluteY }, id);
-//     })
-//     .onEnd((event) => {
-//       pressed.value = false;
-//       onCanvasPointerUp(null, id);
-//     })
-//     .runOnJS(true);
-
-//   const animatedStyles = useAnimatedStyle(() => ({
-//     transform: [
-//       { translateX: translationX.value },
-//       { translateY: translationY.value },
-//       { scale: withTiming(pressed.value ? 1.2 : 1) },
-//     ],
-//     backgroundColor: pressed.value ? "#FFE04B" : "#b58df1",
-//   }));
-
-//   return (
-//     <GestureDetector gesture={pan}>
-//       <Animated.View
-//         style={[
-//           {
-//             width: 100,
-//             height: 100,
-//           },
-//           animatedStyles,
-//         ]}
-//       >
-//         <View
-//           style={[
-//             {
-//               width: 100,
-//               height: 100,
-//               backgroundColor: "black",
-//               position: "absolute",
-
-//               borderRadius: 20,
-//             },
-//             { transform: [{ translateX: x }, { translateY: y }] },
-//           ]}
-//         ></View>
-//       </Animated.View>
-//     </GestureDetector>
-//   );
-// }
-
 function RectanglePanResponder({
   isDragging,
   id,
@@ -316,6 +225,23 @@ function RectanglePanResponder({
   const pan = useRef(new Animated.ValueXY()).current;
   const { x, y, fill } = useStorage((root) => root.shapes.get(id));
   console.log("init", Math.ceil(x), Math.ceil(y));
+  const shapeIdRef = useRef('');
+  const isDraggingRef = useRef(false);
+
+  shapeIdRef.current = id;
+  isDraggingRef.current = isDragging;
+
+  const selectedByMe = useSelf((me) => me.presence.selectedShape === id);
+  const selectedByOthers = useOthers((others) =>
+    others.some((other) => other.presence.selectedShape === id)
+  );
+  const selectionColor = selectedByMe
+    ? "blue"
+    : selectedByOthers
+      ? "green"
+      : "transparent";
+
+  const statusBarHeight = Platform.OS === 'ios' ? Constants.statusBarHeight : 0;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -323,19 +249,14 @@ function RectanglePanResponder({
       onPanResponderGrant: () => {
       },
       onPanResponderMove: (e, gestureState) => {
-      console.log('onPanResponderMove');
-
-
         const rectangleX = gestureState.moveX - e.nativeEvent.locationX;
-        const rectangleY = gestureState.moveY - e.nativeEvent.locationY;
+        const rectangleY = gestureState.moveY - e.nativeEvent.locationY - statusBarHeight;
 
         pan.x.setValue(gestureState.dx);
         pan.y.setValue(gestureState.dy);
 
-       // console.log("move", Math.ceil(rectangleX), Math.ceil(rectangleY));
-
-       isDragging = true;
-       onCanvasPointerMove( {x: rectangleX, y: rectangleY, isDragging},id);
+       console.log("move", Math.ceil(rectangleX), Math.ceil(rectangleY));
+       onCanvasPointerMove( {x: Math.ceil(rectangleX), y: Math.ceil(rectangleY), isDragging: isDraggingRef.current}, shapeIdRef.current);
 
         Animated.event([null, { dx: pan.x, dy: pan.y }], {
           useNativeDriver: false,
@@ -345,7 +266,7 @@ function RectanglePanResponder({
         pan.extractOffset();
       },
       onPanResponderEnd: () => {
-        onCanvasPointerUp(null, id);
+        onCanvasPointerUp(null, shapeIdRef.current);
       },
     })
   ).current;
@@ -359,18 +280,17 @@ function RectanglePanResponder({
       style={[
         {
           ...styles.box,
-          position: "absolute",
-          backgroundColor: "red",
+          borderColor: selectionColor,
+          backgroundColor: fill || "#CCC",
           transform: [{ translateX: pan.x }, { translateY: pan.y }],
         },
       ]}
       {...panResponder.panHandlers}
     >
       <TouchableOpacity
-        style={{ height: 100, width: 100 }}
-        onPressIn={() => onShapePointerDown(id)}
-        // onPressOut={() => onCanvasPointerUp(null, id)}  
-        // onPress={() => onShapePointerDown(id)}
+      style={{ flex: 1, backgroundColor: "transparent"
+         }}
+        onPressIn={() => onShapePointerDown(shapeIdRef.current)}
       ></TouchableOpacity>
     </Animated.View>
   );
@@ -381,7 +301,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 100,
     height: 100,
-    backgroundColor: "black",
     borderRadius: 20,
   },
 });
