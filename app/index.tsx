@@ -10,13 +10,10 @@ import {
   Animated,
 } from "react-native";
 
-import { Button, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import {
-  Gesture,
-  GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
-import { useWindowDimensions } from "react-native";
 import {
   LiveblocksProvider,
   shallow,
@@ -32,8 +29,6 @@ import { useRef, useState } from "react";
 import Constants from "expo-constants";
 
 export default function Index() {
-  const { height, width } = useWindowDimensions();
-
   const roomId = "react-native-expo-whiteboard";
 
   return (
@@ -47,13 +42,10 @@ export default function Index() {
           <GestureHandlerRootView
             style={{
               flex: 1,
-              backgroundColor: "white",
+              backgroundColor: "#eeeeee",
             }}
           >
             <Canvas />
-
-            {/* {Rectangle({ x: width / 2, y: height / 2 })}
-      {Rectangle({ x: 0, y: 0 })} */}
           </GestureHandlerRootView>
         </SafeAreaView>
       </RoomProvider>
@@ -170,35 +162,31 @@ function Canvas() {
   return (
     <View style={{ flex: 1 }}>
       <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-around",
-          padding: 20,
-          position: "fixed",
-          top: 0,
-          width: "100%",
-          backgroundColor: "white",
-        }}
+        style={styles.toolbar}
       >
         <TouchableOpacity
           onPress={insertRectangle}
-          style={{
-            padding: 10,
-            backgroundColor: "lightpink",
-            borderRadius: 10,
-          }}
+          style={styles.toolbarButton}
         >
-          <Text style={{ color: "black" }}>Insert Rectangle</Text>
+          <Text style={{ color: "#181818" }}>Rectangle</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={deleteRectangle}
-          style={{
-            padding: 10,
-            backgroundColor: "lightpink",
-            borderRadius: 10,
-          }}
+          style={styles.toolbarButton}
         >
-          <Text style={{ color: "black" }}>Delete Rectangle</Text>
+          <Text style={{   color: "#181818", }}>Delete</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={deleteRectangle}
+          style={styles.toolbarButton}
+        >
+          <Text style={{ color: "#181818" }}>Undo</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={deleteRectangle}
+          style={styles.toolbarButton}
+        >
+          <Text style={{ color: "#181818" }}>Redo</Text>
         </TouchableOpacity>
       </View>
       {shapeIds?.map((id) => (
@@ -296,6 +284,29 @@ function RectanglePanResponder({
 }
 
 const styles = StyleSheet.create({
+  toolbar: {
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    flexDirection: "row",
+    borderRadius: 10,
+    alignSelf: "center",
+    top: '3%',
+    backgroundColor: "white",
+    shadowOffset: { width: 0, height: 2 },
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+  },
+  toolbarButton: {
+    padding: 10,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 10,
+    margin: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+  },
   box: {
     position: "absolute",
     width: 100,
