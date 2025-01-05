@@ -278,20 +278,19 @@ function RectanglePanResponder({
   return (
     <Animated.View
       style={[
+        styles.box,
         {
-          ...styles.box,
-          borderColor: selectionColor,
-          backgroundColor: fill || "#CCC",
           transform: [{ translateX: pan.x }, { translateY: pan.y }],
         },
       ]}
       {...panResponder.panHandlers}
     >
-      <TouchableOpacity
-      style={{ flex: 1, backgroundColor: "transparent"
-         }}
+      <TouchableWithoutFeedback
         onPressIn={() => onShapePointerDown(shapeIdRef.current)}
-      ></TouchableOpacity>
+      >
+        <View style={{ flex: 1, borderWidth: 3,  borderColor: selectionColor,   backgroundColor: fill || "#CCC",
+         }} />
+         </TouchableWithoutFeedback>
     </Animated.View>
   );
 }
@@ -301,6 +300,5 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 100,
     height: 100,
-    borderRadius: 20,
   },
 });
