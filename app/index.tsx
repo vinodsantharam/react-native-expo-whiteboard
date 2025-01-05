@@ -1,5 +1,4 @@
 import {
-  Dimensions,
   Platform,
   TouchableOpacity,
   View,
@@ -8,12 +7,11 @@ import {
   SafeAreaView,
   PanResponder,
   Animated,
+  StatusBar,
 } from "react-native";
 
 import { StyleSheet } from "react-native";
-import {
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   LiveblocksProvider,
   shallow,
@@ -38,7 +36,8 @@ export default function Index() {
         initialPresence={{ selectedShape: null }}
         initialStorage={{ shapes: new LiveMap() }}
       >
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#eeeeee",}}>
+          <StatusBar barStyle="dark-content" />
           <GestureHandlerRootView
             style={{
               flex: 1,
@@ -52,12 +51,6 @@ export default function Index() {
     </LiveblocksProvider>
   );
 }
-
-function clamp(val: number, min: number, max: number) {
-  return Math.min(Math.max(val, min), max);
-}
-
-const { width, height } = Dimensions.get("screen");
 
 const COLORS = ["#DC2626", "#D97706", "#059669", "#7C3AED", "#DB2777"];
 
@@ -79,7 +72,6 @@ type RectangleProps = {
 
 function Canvas() {
   const [isDragging, setIsDragging] = useState(false);
-  console.log('isDragging', isDragging);
   const shapeIds = useStorage(
     (root) => Array.from(root.shapes.keys()),
     shallow
@@ -120,7 +112,7 @@ function Canvas() {
 
   const onCanvasPointerUp = useMutation(
     ({ setMyPresence }) => {
-      console.log('onCanvasPointerUp', isDragging);
+      console.log("onCanvasPointerUp", isDragging);
 
       if (!isDragging) {
         setMyPresence({ selectedShape: null }, { addToHistory: true });
@@ -128,16 +120,12 @@ function Canvas() {
 
       setIsDragging(false);
       history.resume();
-
     },
     [isDragging, history]
   );
 
   const onCanvasPointerMove = useMutation(
     ({ storage, self }, e: any) => {
-      console.log('onCanvasPointerMove', e.isDragging);
-
-
       if (!e.isDragging) {
         return;
       }
@@ -161,9 +149,7 @@ function Canvas() {
 
   return (
     <View style={{ flex: 1 }}>
-      <View
-        style={styles.toolbar}
-      >
+      <View style={styles.toolbar}>
         <TouchableOpacity
           onPress={insertRectangle}
           style={styles.toolbarButton}
@@ -174,16 +160,16 @@ function Canvas() {
           onPress={deleteRectangle}
           style={styles.toolbarButton}
         >
-          <Text style={{   color: "#181818", }}>Delete</Text>
+          <Text style={{ color: "#181818" }}>Delete</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={deleteRectangle}
+          onPress={() => history.undo()}
           style={styles.toolbarButton}
         >
           <Text style={{ color: "#181818" }}>Undo</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={deleteRectangle}
+          onPress={() => history.redo()}
           style={styles.toolbarButton}
         >
           <Text style={{ color: "#181818" }}>Redo</Text>
@@ -191,7 +177,7 @@ function Canvas() {
       </View>
       {shapeIds?.map((id) => (
         <RectanglePanResponder
-         isDragging={isDragging}
+          isDragging={isDragging}
           key={id}
           id={id}
           onShapePointerDown={onShapePointerDown}
@@ -213,7 +199,7 @@ function RectanglePanResponder({
   const pan = useRef(new Animated.ValueXY()).current;
   const { x, y, fill } = useStorage((root) => root.shapes.get(id));
   console.log("init", Math.ceil(x), Math.ceil(y));
-  const shapeIdRef = useRef('');
+  const shapeIdRef = useRef("");
   const isDraggingRef = useRef(false);
 
   shapeIdRef.current = id;
@@ -226,29 +212,36 @@ function RectanglePanResponder({
   const selectionColor = selectedByMe
     ? "blue"
     : selectedByOthers
-      ? "green"
-      : "transparent";
+    ? "green"
+    : "transparent";
 
-  const statusBarHeight = Platform.OS === 'ios' ? Constants.statusBarHeight : 0;
+  const statusBarHeight = Platform.OS === "ios" ? Constants.statusBarHeight : 0;
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-      },
+      onPanResponderGrant: () => {},
       onPanResponderMove: (e, gestureState) => {
         const rectangleX = gestureState.moveX - e.nativeEvent.locationX;
-        const rectangleY = gestureState.moveY - e.nativeEvent.locationY - statusBarHeight;
+        const rectangleY =
+          gestureState.moveY - e.nativeEvent.locationY - statusBarHeight;
 
         pan.x.setValue(gestureState.dx);
         pan.y.setValue(gestureState.dy);
 
-       console.log("move", Math.ceil(rectangleX), Math.ceil(rectangleY));
-       onCanvasPointerMove( {x: Math.ceil(rectangleX), y: Math.ceil(rectangleY), isDragging: isDraggingRef.current}, shapeIdRef.current);
+        console.log("move", Math.ceil(rectangleX), Math.ceil(rectangleY));
+        onCanvasPointerMove(
+          {
+            x: Math.ceil(rectangleX),
+            y: Math.ceil(rectangleY),
+            isDragging: isDraggingRef.current,
+          },
+          shapeIdRef.current
+        );
 
         Animated.event([null, { dx: pan.x, dy: pan.y }], {
           useNativeDriver: false,
-        })(e, gestureState)
+        })(e, gestureState);
       },
       onPanResponderRelease: () => {
         pan.extractOffset();
@@ -259,7 +252,7 @@ function RectanglePanResponder({
     })
   ).current;
 
-  if(!isDragging){
+  if (!isDragging) {
     pan.setOffset({ x: x, y: y });
   }
 
@@ -276,9 +269,15 @@ function RectanglePanResponder({
       <TouchableWithoutFeedback
         onPressIn={() => onShapePointerDown(shapeIdRef.current)}
       >
-        <View style={{ flex: 1, borderWidth: 3,  borderColor: selectionColor,   backgroundColor: fill || "#CCC",
-         }} />
-         </TouchableWithoutFeedback>
+        <View
+          style={{
+            flex: 1,
+            borderWidth: 3,
+            borderColor: selectionColor,
+            backgroundColor: fill || "#CCC",
+          }}
+        />
+      </TouchableWithoutFeedback>
     </Animated.View>
   );
 }
@@ -290,10 +289,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderRadius: 10,
     alignSelf: "center",
-    top: '3%',
+    top: "3%",
     backgroundColor: "white",
     shadowOffset: { width: 0, height: 2 },
-    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowColor: "rgba(0, 0, 0, 0.1)",
     shadowOpacity: 0.8,
     shadowRadius: 2,
   },
@@ -303,7 +302,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     margin: 8,
     shadowOffset: { width: 0, height: 2 },
-    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowColor: "rgba(0, 0, 0, 0.1)",
     shadowOpacity: 0.8,
     shadowRadius: 2,
   },
